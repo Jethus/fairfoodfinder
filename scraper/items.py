@@ -15,4 +15,5 @@ class ProductItem(scrapy.Item):
     link = scrapy.Field()
     brand = scrapy.Field()
     package_size = scrapy.Field()
+    stock = scrapy.Field()
     points = scrapy.Field()
