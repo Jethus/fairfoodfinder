@@ -9,11 +9,13 @@ from scrapy.http import HtmlResponse
 from scraper.items import ProductItem
 
 class LoblawsSpider(scrapy.Spider):
-    name = "loblaws-vegetables"
+    name = "loblaws"
     allowed_domains = ["loblaws.ca"]
-    start_urls = ["https://www.loblaws.ca/food/meat/deli-meat/c/59319"]
-    # "https://www.loblaws.ca/food/fruits-vegetables/fresh-vegetables/c/28195"
-    # "https://www.loblaws.ca/food/fruits-vegetables/fresh-fruits/c/28194"
+    start_urls = [
+        "https://www.loblaws.ca/food/fruits-vegetables/fresh-vegetables/c/28195",
+        "https://www.loblaws.ca/food/fruits-vegetables/fresh-fruits/c/28194",
+        "https://www.loblaws.ca/food/meat/deli-meat/c/59319",
+        ]
 
     def __init__(self):
         # intialize the webdriver
@@ -57,6 +59,8 @@ class LoblawsSpider(scrapy.Spider):
         products = response.css('div[data-testid="product-grid"]>*')
         for product in products:
             item = ProductItem()
+            item['store'] = 'loblaws'
+            item['category'] = response.css('[data-testid="heading"]::text').get(default='Unknown')
             item['name'] = product.css('[data-testid="product-title"]::text').get(default='No name available')
             item['price'], item['sale_price'], item['previous_price'] = self.extract_price(product)
             item['image_url'] = product.css('[data-testid="product-image"] img::attr(src)').get(default='')

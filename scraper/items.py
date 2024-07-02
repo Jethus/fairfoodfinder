@@ -6,6 +6,8 @@
 import scrapy
 
 class ProductItem(scrapy.Item):
+    store = scrapy.Field()
+    category = scrapy.Field()
     name = scrapy.Field()
     price = scrapy.Field()
     unit_price = scrapy.Field()
