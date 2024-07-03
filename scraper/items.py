@@ -1,21 +1,27 @@
 # Define here the models for your scraped items
 #
 # See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
+# https://docs.org/en/latest/topics/items.html
 
-import scrapy
+from scrapy.item import Item, Field
 
-class ProductItem(scrapy.Item):
-    store = scrapy.Field()
-    category = scrapy.Field()
-    name = scrapy.Field()
-    price = scrapy.Field()
-    unit_price = scrapy.Field()
-    sale_price = scrapy.Field()
-    previous_price = scrapy.Field()
-    image_url = scrapy.Field()
-    link = scrapy.Field()
-    brand = scrapy.Field()
-    package_size = scrapy.Field()
-    stock = scrapy.Field()
-    points = scrapy.Field()
+class ProductItem(Item):
+    store = Field()
+    category = Field()
+    name = Field()
+    price = Field()
+    unit_price = Field()
+    sale_price = Field()
+    previous_price = Field()
+    image_url = Field()
+    link = Field()
+    brand = Field()
+    package_size = Field()
+    stock = Field()
+    points = Field()
+    date_scraped = Field()
+    product_id = Field()
+    # ingredients = Field()
+    # nutritional_info = Field()
+    # origin = Field()
+    organic = Field()
