@@ -8,6 +8,7 @@ from scrapy.item import Item, Field
 class ProductItem(Item):
     store = Field()
     category = Field()
+    subcategory = Field()
     name = Field()
     price = Field()
     unit_price = Field()
