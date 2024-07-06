@@ -51,8 +51,8 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
 }
 
 # # Concurrent requests
-DEPTH_PRIORITY = 1
-CONCURRENT_REQUESTS = 2
+CONCURRENT_REQUESTS = 3
+LOG_LEVEL = 'DEBUG'
 
 # # Configure maximum concurrent requests performed by Scrapy (default: 16)
 # CONCURRENT_REQUESTS_PER_DOMAIN = 8

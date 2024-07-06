@@ -1,9 +1,9 @@
 import scrapy
-import hashlib
-from scrapy_playwright.page import PageMethod
-from scraper.items import ProductItem
-from datetime import datetime
 import json
+import hashlib
+from datetime import datetime
+from scraper.items import ProductItem  # Ensure this is correctly imported from your project structure
+import logging
 
 class LobLawsSpider(scrapy.Spider):
     name = "loblaws"
@@ -11,96 +11,77 @@ class LobLawsSpider(scrapy.Spider):
 
     def start_requests(self):
         url = "https://api.pcexpress.ca/pcx-bff/api/v2/listingPage/27985"
-        headers = {
+        logging.info("HELLO THERE")
+        yield scrapy.Request(
+            url, 
+            method='POST', 
+            headers=self.get_headers(),
+            body=json.dumps(self.get_payload()),
+            callback=self.parse_primary
+        )
+
+    def get_headers(self):
+        return {
             "Accept-Language": "en",
             "x-apikey": "C1xujSegT5j3ap3yexJjqhOfELwGKYvz",
             "x-application-type": "Web",
             "x-loblaw-tenant-id": "ONLINE_GROCERIES",
         }
 
-        payload = {
+    def get_payload(self):
+        return {
             "banner": "loblaw",
             "cart": {"cartId": "00000000-0000-0000-0000-000000000000"},
             "fulfillmentInfo": {"storeId": "1001"}
         }
 
-        yield scrapy.Request(
-            url, 
-            method='POST', 
-            headers=headers, 
-            body=json.dumps(payload),
-            callback=self.parse
-        )
+    def parse_primary(self, response):
+        data = response.json()
+        logging.info(response.text)
+        primary_nav_nodes = self.get_navigation_nodes(data)
+        primary_urls = self.get_navigation_urls(primary_nav_nodes)
 
-    def get_navigation_items(self, json_response):
+        # Process each primary URL to fetch sub-navigation nodes
+        for url_info in primary_urls:
+            full_url = response.urljoin(url_info['categoryUrl'])
+            yield scrapy.Request(full_url, callback=self.parse_subnavigation)
+
+    def get_navigation_nodes(self, data):
         try:
-            # Navigate to the relevant part of the JSON structure
-            components = json_response['layout']['sections']['productListingSection']['components']
+            components = data['layout']['sections']['productListingSection']['components']
             for component in components:
                 if 'data' in component and 'categoryNavigation' in component['data']:
-                    navigation = component['data']['categoryNavigation']['navigation']
-                    return navigation['childNodes']
+                    return component['data']['categoryNavigation']['navigation']['childNodes']
         except KeyError as e:
-            print(f"Error navigating JSON: {e}")
+            self.logger.error(f"Error navigating JSON: {e}")
         return []
 
-    def filter_urls(self, navigation_items):
-        """ Filter out 'See All' and extract URLs. """
-        urls = []
-        for item in navigation_items:
-            if item['displayName'] != "See All":
-                urls.append(item['url'])
-        return urls
-
-    def main(self, json_data):
-        navigation_items = self.get_navigation_items(json_data)
-        urls = self.filter_urls(navigation_items)
-        print("Extracted URLs:", urls)
-
-    # def parse_items(self, response):
-    #     for product in products:
-    #         yield self.create_product_item(product, response)
+    def parse_subnavigation(self, response):
+        data = response.json()
+        sub_nav_nodes = self.get_subnavigation_nodes(data)
+        sub_urls = self.get_navigation_urls(sub_nav_nodes)
         
-    #     next_page = response.css('a[aria-label="Next Page"]::attr(href)').get()
-    #     if next_page:
-    #         next_page_url = response.urljoin(next_page)
-    #         yield self.items_request(next_page_url, self.parse_items)
+        # Print sub URLs
+        for info in sub_urls:
+            print(f"Sub Category: {info['categoryName']}, ID: {info['categoryNumber']}")
 
-    def create_product_item(self, product, response):
-        item = ProductItem()
-        item['store'] = 'loblaws'
-        item['category'] = response.css('[data-testid="heading"]::text').get(default='Unknown')
-        item['subcategory'] = response.css('[data-testid="back-link"]::text').get(default='Unknown')
-        item['name'] = product.css('[data-testid="product-title"]::text').get(default='No name available')
-        item['price'], item['sale_price'], item['previous_price'] = self.extract_price(product)
-        item['image_url'] = product.css('[data-testid="product-image"] img::attr(src)').get(default='')
-        item['link'] = response.urljoin(product.css('a::attr(href)').get(default=''))
-        item['brand'] = product.css('[data-testid="product-brand"]::text').get(default='')
-        item['package_size'], item['unit_price'] = self.extract_size(product)
-        item['stock'] = product.css('[data-testid="inventory-badge-text"]::text').get(default='In stock')
-        item['points'] = product.css('[data-testid="product-pco-badge"]::text').get(default='')
-        item['date_scraped'] = datetime.now().isoformat()
-        item['product_id'] = self.generate_product_id(item['name'], item['brand'], item['package_size'])
-        item['organic'] = 'organic' in item['name'].lower()
-        return item
-            
-    def generate_product_id(self, name, brand, package_size):
-        unique_string = f"{name}_{brand}_{package_size}".lower()
-        return hashlib.md5(unique_string.encode()).hexdigest()
-    
-    def extract_size(self, product):
-        # $1.32/100g -> error data
-        product_size_text = product.css('[data-testid="product-package-size"]::text').get(default='')
-        if ',' in product_size_text:
-            return [text.strip() for text in product_size_text.split(',', 1)]
-        elif ' ' in product_size_text:
-            return [text.strip() for text in product_size_text.split(' ', 1)]
-        else:
-            return '', product_size_text
+    def get_subnavigation_nodes(self, data):
+        try:
+            components = data['layout']['sections']['productListingSection']['components'][0]['data']['navigation']['childNodes']
+            return components
+        except KeyError as e:
+            self.logger.error(f"Error navigating JSON: {e}")
+        return []
 
-    def extract_price(self, product):
-        price_info = product.css('[data-testid="price-product-tile"]')
-        regular_price = price_info.css('[data-testid="regular-price"] span::text').get(default='')
-        sale_price = price_info.css('[data-testid="sale-price"] span::text').get(default='')
-        previous_price = price_info.css('[data-testid="was-price"] span::text').get(default='')
-        return regular_price, sale_price, previous_price
+    def get_navigation_urls(self, navigationNodes):
+        urls_info = []
+        for node in navigationNodes:
+            if 'url' in node and 'displayName' in node:
+                url_parts = node['url'].split('/')
+                url_number = url_parts[-1] if url_parts[-1].isdigit() else url_parts[-2]  # Handle cases where the last part is not a digit
+                urls_info.append({
+                    'categoryName': node['displayName'],
+                    'categoryNumber': url_number,
+                    'categoryUrl': node['url']
+                })
+        return urls_info

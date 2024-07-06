@@ -5,7 +5,7 @@ from scraper.items import ProductItem
 from datetime import datetime
 
 class LobLawsSpider(scrapy.Spider):
-    name = "loblaws"
+    name = "loblawsAgent"
     allowed_domains = ["loblaws.ca"]
     start_urls = ["https://www.loblaws.ca/food/c/27985"]
     category_urls = []

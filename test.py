@@ -2,7 +2,7 @@ import requests
 import json
 
 def main():
-    url = "https://api.pcexpress.ca/pcx-bff/api/v2/listingPage/27985" #28195
+    url = "https://api.pcexpress.ca/pcx-bff/api/v2/listingPage/27985" # food = 27985
     headers = {
         "Content-Type": "application/json", # not needed
         "Accept-Language": "en",
@@ -27,7 +27,7 @@ def main():
     response_data = response.json()
 
 
-    with open('api_response.json', 'w') as f:
+    with open('food_api_response.json', 'w') as f:
         json.dump(response_data, f, indent=4)
         
     # Print the entire JSON response
